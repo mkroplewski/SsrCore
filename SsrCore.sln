@@ -1,0 +1,26 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SsrCore", "src\SsrCore\SsrCore.csproj", "{F438B197-B00C-4DDE-B29D-84AB3F081F68}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "tanstack-router-streaming", "examples\tanstack-router-streaming\tanstack-router-streaming.csproj", "{8102C7D2-7F34-4E5B-B1D0-F0FCB4B0441A}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{2DB30EC8-AACB-487B-BBC4-DD593DA924F3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2DB30EC8-AACB-487B-BBC4-DD593DA924F3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2DB30EC8-AACB-487B-BBC4-DD593DA924F3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2DB30EC8-AACB-487B-BBC4-DD593DA924F3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F438B197-B00C-4DDE-B29D-84AB3F081F68}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F438B197-B00C-4DDE-B29D-84AB3F081F68}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F438B197-B00C-4DDE-B29D-84AB3F081F68}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F438B197-B00C-4DDE-B29D-84AB3F081F68}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8102C7D2-7F34-4E5B-B1D0-F0FCB4B0441A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8102C7D2-7F34-4E5B-B1D0-F0FCB4B0441A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8102C7D2-7F34-4E5B-B1D0-F0FCB4B0441A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8102C7D2-7F34-4E5B-B1D0-F0FCB4B0441A}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
