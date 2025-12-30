@@ -120,7 +120,7 @@ public class RenderService
     }
     
     // Separate helper method to keep the main logic clean.
-// This runs on the ThreadPool, freeing up the JS Thread.
+    // This runs on the ThreadPool, freeing up the JS Thread.
     private static async Task CopyPipeToResponseAsync(PipeReader reader, Stream responseBody)
     {
         while (true)

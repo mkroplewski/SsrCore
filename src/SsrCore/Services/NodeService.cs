@@ -15,10 +15,8 @@ public class NodeService
     {
         AutoCamelCase = true,
     };
-    
     internal IEntryServer EntryServer;
     internal INodeReadable NodeReadable;
-
 
     public NodeService(IOptions<SsrCoreOptions> options)
     {
