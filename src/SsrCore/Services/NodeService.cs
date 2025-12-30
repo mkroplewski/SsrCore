@@ -1,5 +1,6 @@
 using System.Runtime.InteropServices;
 using Microsoft.Extensions.Options;
+using Microsoft.JavaScript.NodeApi;
 using Microsoft.JavaScript.NodeApi.DotNetHost;
 using Microsoft.JavaScript.NodeApi.Runtime;
 using SsrCore.Interfaces;
@@ -15,7 +16,7 @@ public class NodeService
     {
         AutoCamelCase = true,
     };
-    internal IEntryServer EntryServer;
+    internal JSReference EntryServer;
     internal INodeReadable NodeReadable;
 
     public NodeService(IOptions<SsrCoreOptions> options)
@@ -56,9 +57,9 @@ public class NodeService
             Runtime.RunAsync(async () =>
             {
                 var mod = await Runtime.ImportAsync(bundlePath, null, true);
-                EntryServer = Marshaller.FromJS<IEntryServer>(mod);
+                EntryServer = new JSReference(mod);
 
-                // Cache the Readable class for later use with JSReference to survive scope closures
+                // Cache the Readable class for later use
                 var radableModule = await Runtime.ImportAsync("stream", "Readable");
                 NodeReadable = Marshaller.FromJS<INodeReadable>(radableModule);
             })).Wait();

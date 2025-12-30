@@ -1,6 +1,3 @@
-namespace SsrCore;
-
-
 /// <summary>
 /// Specifies the rendering mode for the Node.js SSR process.
 /// </summary>
@@ -31,4 +28,10 @@ public class SsrCoreOptions
     /// Gets or sets the rendering mode. Defaults to <see cref="RenderMode.String"/>.
     /// </summary>
     public RenderMode RenderMode { get; set; } = RenderMode.String;
+
+    /// <summary>
+    /// Gets or sets the entry function name in the JavaScript bundle.
+    /// Defaults to "default". Supports dot-notation for nested functions (e.g., "entry.module.default").
+    /// </summary>
+    public string EntryFunction { get; set; } = "default";
 }

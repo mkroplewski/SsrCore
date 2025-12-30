@@ -4,6 +4,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SsrCore", "src\SsrCore\SsrC
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "tanstack-router-streaming", "examples\tanstack-router-streaming\tanstack-router-streaming.csproj", "{8102C7D2-7F34-4E5B-B1D0-F0FCB4B0441A}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "react-router-streaming", "examples\react-router-streaming\react-router-streaming.csproj", "{3D469BA1-D5A8-4554-996A-E6A54693609C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -22,5 +24,9 @@ Global
 		{8102C7D2-7F34-4E5B-B1D0-F0FCB4B0441A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8102C7D2-7F34-4E5B-B1D0-F0FCB4B0441A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8102C7D2-7F34-4E5B-B1D0-F0FCB4B0441A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3D469BA1-D5A8-4554-996A-E6A54693609C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3D469BA1-D5A8-4554-996A-E6A54693609C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3D469BA1-D5A8-4554-996A-E6A54693609C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3D469BA1-D5A8-4554-996A-E6A54693609C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

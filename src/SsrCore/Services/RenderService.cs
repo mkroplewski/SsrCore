@@ -3,6 +3,8 @@ using System.IO.Pipelines;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
+using Microsoft.JavaScript.NodeApi;
+using SsrCore.Interfaces;
 
 namespace SsrCore.Services;
 
@@ -38,7 +40,12 @@ public class RenderService
             try
             {
                 var jsRequestValue = jsRequest.ToJSValue();
-                var jsResponse = await _nodeService.EntryServer.Default(jsRequestValue);
+                var jsResponseValue =  GetEntryFunction().Call(JSValue.Undefined, jsRequestValue);
+                if (jsResponseValue.IsPromise())
+                {
+                    jsResponseValue = await ((JSPromise)jsResponseValue).AsTask();
+                }
+                var jsResponse = _nodeService.Marshaller.FromJS<IJsWebResponse>(jsResponseValue);
 
                 // 5. Set Status and Headers
                 // Must happen before writing to the pipe/response body
@@ -152,5 +159,19 @@ public class RenderService
         }
     
         await reader.CompleteAsync();
+    }
+    
+    private JSValue GetEntryFunction()
+    {
+        var entry = _nodeService.EntryServer.GetValue();
+        var entryFunctionOption = _options.EntryFunction;
+        JSValue entryFunction = entry;
+        
+        entryFunctionOption.Split(".").ToList().ForEach(part =>
+        {
+            entryFunction = entryFunction[part];
+        });
+
+        return entryFunction;
     }
 }
