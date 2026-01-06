@@ -34,9 +34,8 @@ Configuration options for SsrCore.
 
 The default export of your server bundle should be a function that takes a `Request` and returns a `Response` or `Promise<Response>`.
 
-https://developer.mozilla.org/en-US/docs/Web/API/Request
-
-https://developer.mozilla.org/en-US/docs/Web/API/Response
+- [Request (MDN)](https://developer.mozilla.org/en-US/docs/Web/API/Request)
+- [Response (MDN)](https://developer.mozilla.org/en-US/docs/Web/API/Response)
 
 ```typescript
 export default async function (request: Request): Promise<Response> {
