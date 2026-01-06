@@ -15,6 +15,7 @@
         <PackageReference Include="Microsoft.JavaScript.LibNode" Version="20.1800.215" />
         <PackageReference Include="Microsoft.JavaScript.NodeApi" Version="0.9.18" />
         <PackageReference Include="Microsoft.JavaScript.NodeApi.DotNetHost" Version="0.9.18" />
+        <PackageReference Include="Yarp.ReverseProxy" Version="2.3.0" />
     </ItemGroup>
 
 </Project>

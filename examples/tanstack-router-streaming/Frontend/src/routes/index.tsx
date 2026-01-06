@@ -1,18 +1,16 @@
-import { Await, createFileRoute } from '@tanstack/react-router'
-import * as React from 'react'
+import { Await, createFileRoute } from "@tanstack/react-router";
+import * as React from "react";
 
-export const Route = createFileRoute('/')({
+export const Route = createFileRoute("/")({
   loader: () => ({
     date: new Date(),
-    deferred: new Promise<{ date: Date }>((r) =>
-      setTimeout(() => r({ date: new Date() }), 1000),
-    ),
+    deferred: new Promise<{ date: Date }>((r) => setTimeout(() => r({ date: new Date() }), 1000)),
   }),
   component: IndexComponent,
-})
+});
 
 function IndexComponent() {
-  const data = Route.useLoaderData()
+  const data = Route.useLoaderData();
 
   return (
     <div className="p-2">
@@ -22,5 +20,5 @@ function IndexComponent() {
         {(data) => <p>Deferred: {new Date(data.date).getDate()}</p>}
       </Await>
     </div>
-  )
+  );
 }
