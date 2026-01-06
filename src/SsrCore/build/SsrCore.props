@@ -1,0 +1,12 @@
+
+<Project>
+    <PropertyGroup>
+        <!-- 
+          Set the default filename for the generated Type Definitions.
+          We use a Condition so the user can still override this in their .csproj if they really want to.
+        -->
+        <NodeApiTypeDefinitionsFileName Condition="'$(NodeApiTypeDefinitionsFileName)' == ''">api.d.ts</NodeApiTypeDefinitionsFileName>
+    </PropertyGroup>
+</Project>
+
+  

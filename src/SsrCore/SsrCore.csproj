@@ -15,7 +15,13 @@
         <PackageReference Include="Microsoft.JavaScript.LibNode" Version="20.1800.215" />
         <PackageReference Include="Microsoft.JavaScript.NodeApi" Version="0.9.18" />
         <PackageReference Include="Microsoft.JavaScript.NodeApi.DotNetHost" Version="0.9.18" />
+        <PackageReference Include="Microsoft.JavaScript.NodeApi.Generator" Version="0.9.18" PrivateAssets="none" />
         <PackageReference Include="Yarp.ReverseProxy" Version="2.3.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Include="build/SsrCore.targets" Pack="true" PackagePath="build/SsrCore.targets" />
+        <None Include="build/SsrCore.props" Pack="true" PackagePath="build/SsrCore.props" />
     </ItemGroup>
 
 </Project>

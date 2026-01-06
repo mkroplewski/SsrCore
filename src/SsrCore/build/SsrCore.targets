@@ -1,0 +1,31 @@
+<Project>
+    <!-- 
+      This runs automatically after the NodeApi generator finishes.
+      Condition: Only run if the file was actually generated.
+    -->
+    <Target Name="AutoCopyTypesToFrontend"
+            AfterTargets="GenerateNodeApiTypeDefinitions"
+            Condition="Exists('$(TargetDir)$(NodeApiTypeDefinitionsFileName)')">
+
+        <!-- 
+          Default location: Frontend/src/_generated/api.d.ts
+          Allow the user to override this property in their csproj if their folder structure is weird.
+        -->
+        <PropertyGroup>
+            <SsrTypesDestination Condition="'$(SsrTypesDestination)' == ''">$(MSBuildProjectDirectory)/Frontend/src/_generated/api.d.ts</SsrTypesDestination>
+        </PropertyGroup>
+
+        <Message Text="[SsrCore] Copying server types to: $(SsrTypesDestination)" Importance="high" />
+
+        <!-- Ensure dir exists -->
+        <MakeDir Directories="$([System.IO.Path]::GetDirectoryName('$(SsrTypesDestination)'))" />
+
+        <!-- Copy the file -->
+        <Copy SourceFiles="$(TargetDir)$(NodeApiTypeDefinitionsFileName)"
+              DestinationFiles="$(SsrTypesDestination)"
+              SkipUnchangedFiles="true" />
+
+    </Target>
+</Project>
+
+  
