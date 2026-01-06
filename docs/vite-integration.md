@@ -29,3 +29,17 @@ SsrCore handles the switching logic automatically based on the `ASPNETCORE_ENVIR
 
 - **Development**: Proxies the client-side requests directly to Vite dev server and uses Vite for resolving the server entry.
 - **Production**: Serves the optimized static assets and uses the pre-built server bundle for maximum performance.
+
+## Current issues
+
+### Rollup Native Bindings
+
+When running the Vite dev server within a .NET host process, due to Rollup's native bindings an exception will be thrown. To resolve this, it is recommended to use the WebAssembly version of Rollup in your `package.json`:
+
+```json
+{
+  "overrides": {
+    "rollup": "npm:@rollup/wasm-node"
+  }
+}
+```

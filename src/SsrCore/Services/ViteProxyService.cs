@@ -1,5 +1,6 @@
 using System.Net;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
 using SsrCore.Services;
 using Yarp.ReverseProxy.Forwarder;
 
@@ -8,11 +9,13 @@ public class ViteProxyService : IDisposable
     private readonly SsrContextService _ssrContextService;
     private readonly IHttpForwarder _forwarder;
     private readonly HttpMessageInvoker _httpClient;
+    private readonly ILogger<ViteProxyService> _logger;
 
-    public ViteProxyService(IHttpForwarder forwarder, SsrContextService ssrContextService)
+    public ViteProxyService(IHttpForwarder forwarder, SsrContextService ssrContextService, ILogger<ViteProxyService> logger)
     {
         _forwarder = forwarder;
         _ssrContextService = ssrContextService;
+        _logger = logger;
 
         // Use SocketsHttpHandler for performance
         _httpClient = new HttpMessageInvoker(new SocketsHttpHandler
@@ -21,11 +24,12 @@ public class ViteProxyService : IDisposable
             AllowAutoRedirect = false,
             AutomaticDecompression = DecompressionMethods.None,
             UseCookies = false
-        });
+        }, disposeHandler: true);
     }
 
     public async Task<bool> ForwardRequest(HttpContext context)
     {
+        await _ssrContextService.InitializationTask;
         if (string.IsNullOrEmpty(_ssrContextService.InternalViteUrl)) return false;
 
         // Forward the request to the internal Node server
@@ -40,7 +44,8 @@ public class ViteProxyService : IDisposable
 
         if (error != ForwarderError.None)
         {
-            // Handle error (log it)
+            _logger.LogError("Vite proxy error: {Error}. Request: {Method} {Path}, Target: {Target}, Response Status: {StatusCode}",
+                error, context.Request.Method, context.Request.Path, _ssrContextService.InternalViteUrl, context.Response.StatusCode);
         }
 
         return context.Items.ContainsKey("ViteProxyRequestHandled");

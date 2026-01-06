@@ -7,42 +7,62 @@ using SsrCore.Interfaces;
 
 namespace SsrCore.Services;
 
-public class SsrContextService
+public class SsrContextService : IHostedService
 {
     private readonly IOptions<SsrCoreOptions> _options;
     private readonly bool _isDevelopment;
-    
-    private JSReference _ssrLoadModule;
-    private JSReference EntryServer;
-    
-    internal INodeReadable NodeReadable;
+    private readonly NodeService _nodeService;
+    private readonly IWebHostEnvironment _env;
+    private readonly string _bundlePath;
+    private readonly TaskCompletionSource _initializedTcs = new();
+
+    private JSReference? _ssrLoadModule;
+    private JSReference? EntryServer;
+
+    internal INodeReadable? NodeReadable;
     internal NodeEmbeddingThreadRuntime Runtime;
-    internal string InternalViteUrl;
+    internal string? InternalViteUrl;
+
+    public Task InitializationTask => _initializedTcs.Task;
 
     public SsrContextService(NodeService nodeService, IOptions<SsrCoreOptions> options, IWebHostEnvironment env)
     {
-        var nodeService1 = nodeService;
+        _nodeService = nodeService;
         _options = options;
+        _env = env;
         _isDevelopment = env.IsDevelopment();
 
         var frontendDistPath = Path.Combine(AppContext.BaseDirectory, "wwwroot", "server");
         var frontendPath = Path.Combine(env.ContentRootPath, options.Value.FrontendPath);
         var baseDir = env.IsDevelopment() ? frontendPath : frontendDistPath;
 
-        Runtime = nodeService1.Platform.CreateThreadRuntime(baseDir, new NodeEmbeddingRuntimeSettings
+        Runtime = _nodeService.Platform.CreateThreadRuntime(baseDir, new NodeEmbeddingRuntimeSettings
         {
             // Initialize the require function so we can load modules
             MainScript = "globalThis.require = require('module').createRequire(process.execPath);\n"
         });
 
-        string bundlePath = Path.Combine(baseDir, "entry-server.mjs");
+        _bundlePath = Path.Combine(baseDir, "entry-server.mjs");
+    }
 
-        Task.Run(() =>
-            Runtime.RunAsync(async () =>
+    public async Task StartAsync(CancellationToken cancellationToken)
+    {
+        // Offload initialization so we don't block the host start
+        _ = InitializeAsync();
+        await Task.CompletedTask;
+    }
+
+    public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+
+    public async Task InitializeAsync()
+    {
+        try
+        {
+            await Runtime.RunAsync(async () =>
             {
-                if (env.IsProduction())
+                if (_env.IsProduction())
                 {
-                    var mod = await Runtime.ImportAsync(bundlePath, null, true);
+                    var mod = await Runtime.ImportAsync(_bundlePath, null, true);
                     EntryServer = new JSReference(mod);
                 }
                 else
@@ -59,12 +79,20 @@ public class SsrContextService
 
                 // Cache the Readable class for later use
                 var readableModule = await Runtime.ImportAsync("stream", "Readable");
-                NodeReadable = nodeService1.Marshaller.FromJS<INodeReadable>(readableModule);
-            })).Wait();
+                NodeReadable = _nodeService.Marshaller.FromJS<INodeReadable>(readableModule);
+            });
+            _initializedTcs.TrySetResult();
+        }
+        catch (Exception ex)
+        {
+            _initializedTcs.TrySetException(ex);
+            throw;
+        }
     }
 
     public async Task<JSReference> GetDevEntryServer()
     {
+        await InitializationTask;
         if (_ssrLoadModule == null)
         {
             throw new InvalidOperationException("SSR Load Module is not initialized.");
@@ -79,8 +107,13 @@ public class SsrContextService
 
     public async Task<JSValue> GetEntryFunctionAsync()
     {
+        await InitializationTask;
         JSValue entry;
-        if (_isDevelopment)
+        if (!_isDevelopment && EntryServer != null)
+        {
+            entry = EntryServer.GetValue();
+        }
+        else
         {
             var devEntryRef = await GetDevEntryServer();
             // We can dispose the reference immediately after getting a value in the current scope.
@@ -89,10 +122,6 @@ public class SsrContextService
             {
                 entry = devEntryRef.GetValue();
             }
-        }
-        else
-        {
-            entry = EntryServer.GetValue();
         }
 
         var entryFunctionOption = _options.Value.EntryFunction;

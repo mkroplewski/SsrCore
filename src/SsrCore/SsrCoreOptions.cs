@@ -37,8 +37,8 @@ public class SsrCoreOptions
 
     /// <summary>
     /// Gets or sets the path to the frontend directory (containing vite.config.js).
-    /// Defaults to "Client".
+    /// Defaults to "Frontend".
     /// </summary>
     public string FrontendPath { get; set; } = "Frontend";
-    
+
 }

@@ -7,3 +7,4 @@ riderModule.iml
 wwwroot/
 node_modules/
 .vite/
+*.DotSettings.user

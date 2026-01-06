@@ -24,6 +24,7 @@ public static class Extensions
         builder.Services.Configure(configureOptions);
         builder.Services.AddSingleton<NodeService>();
         builder.Services.AddSingleton<SsrContextService>();
+        builder.Services.AddHostedService(sp => sp.GetRequiredService<SsrContextService>());
 
         if (builder.Environment.IsDevelopment())
         {
