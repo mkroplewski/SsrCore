@@ -1,6 +1,8 @@
 using System.Buffers;
 using System.IO.Pipelines;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
 using Microsoft.JavaScript.NodeApi;
@@ -12,10 +14,12 @@ public class RenderService
 {
     private readonly SsrCoreOptions _options;
     private readonly NodeService _nodeService;
+    private readonly SsrContextService _ssrContextService;
 
-    public RenderService(IOptions<SsrCoreOptions> options, NodeService nodeService)
+    public RenderService(IOptions<SsrCoreOptions> options, NodeService nodeService, SsrContextService ssrContextService)
     {
         _nodeService = nodeService;
+        _ssrContextService = ssrContextService;
         _options = options.Value;
     }
 
@@ -35,12 +39,13 @@ public class RenderService
 
         // 4. Run the Producer (JS Thread)
         // We await this to ensure the JS generation completes or errors out.
-        await _nodeService.Runtime.RunAsync(async () =>
+        await _ssrContextService.Runtime.RunAsync(async () =>
         {
             try
             {
+                var entry = await _ssrContextService.GetEntryFunctionAsync();
                 var jsRequestValue = jsRequest.ToJSValue();
-                var jsResponseValue =  GetEntryFunction().Call(JSValue.Undefined, jsRequestValue);
+                var jsResponseValue = entry.Call(JSValue.Undefined, jsRequestValue);
                 if (jsResponseValue.IsPromise())
                 {
                     jsResponseValue = await ((JSPromise)jsResponseValue).AsTask();
@@ -73,7 +78,7 @@ public class RenderService
 
                 // Get the stream wrapper based on mode
                 Stream stream = _options.RenderMode == RenderMode.WebReadableStream
-                    ? _nodeService.NodeReadable.FromWeb(body.Value)
+                    ? _ssrContextService.NodeReadable.FromWeb(body.Value)
                     : _nodeService.Marshaller.FromJS<Stream>(body.Value);
 
                 // 7. Critical Optimization Loop
@@ -125,7 +130,7 @@ public class RenderService
         // 8. Ensure Consumer finishes
         await writingTask;
     }
-    
+
     // Separate helper method to keep the main logic clean.
     // This runs on the ThreadPool, freeing up the JS Thread.
     private static async Task CopyPipeToResponseAsync(PipeReader reader, Stream responseBody)
@@ -148,7 +153,7 @@ public class RenderService
 
             // Tell the pipe we processed everything
             reader.AdvanceTo(buffer.End);
-        
+
             // Explicit flush to ensure chunks get sent to client immediately (Streaming UI)
             await responseBody.FlushAsync();
 
@@ -157,21 +162,8 @@ public class RenderService
                 break;
             }
         }
-    
+
         await reader.CompleteAsync();
     }
-    
-    private JSValue GetEntryFunction()
-    {
-        var entry = _nodeService.EntryServer.GetValue();
-        var entryFunctionOption = _options.EntryFunction;
-        JSValue entryFunction = entry;
-        
-        entryFunctionOption.Split(".").ToList().ForEach(part =>
-        {
-            entryFunction = entryFunction[part];
-        });
 
-        return entryFunction;
-    }
 }

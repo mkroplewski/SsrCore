@@ -14,7 +14,6 @@
     "@tanstack/react-router": "^1.144.0",
     "@tanstack/router-plugin": "^1.144.0",
     "compression": "^1.8.0",
-    "express": "^4.21.2",
     "get-port": "^7.1.0",
     "node-fetch": "^3.3.2",
     "react": "^19.0.0",
@@ -28,5 +27,8 @@
     "@vitejs/plugin-react": "^4.3.4",
     "typescript": "^5.7.2",
     "vite": "^7.1.7"
+  },
+  "overrides": {
+    "rollup": "npm:@rollup/wasm-node"
   }
 }

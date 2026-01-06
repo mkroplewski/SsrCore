@@ -58,7 +58,11 @@ app.Run();
 
 ## JavaScript Entry Point
 
-You need to export a `default` function in your server entry point that matches the expected signature. SsrCore expects your JS code to behave like a standard web server handler.
+You need to export a function in your server entry point that matches the expected signature, taking a `Request` and returning a `Response` or `Promise<Response>`. The name of this function is configurable in [SsrCoreOptions](./api-reference.md#ssrcoreoptions).
+
+https://developer.mozilla.org/en-US/docs/Web/API/Request
+
+https://developer.mozilla.org/en-US/docs/Web/API/Response
 
 **Example (TypeScript):**
 
@@ -68,7 +72,7 @@ You need to export a `default` function in your server entry point that matches 
 export default async function handleRequest(request: Request): Promise<Response> {
   // 1. Process the request (e.g. routing)
   const url = new URL(request.url);
-  
+
   // 2. Render your app to a stream
   const stream = await renderAppToStream(url);
 
@@ -76,11 +80,8 @@ export default async function handleRequest(request: Request): Promise<Response>
   return new Response(stream, {
     status: 200,
     headers: {
-      'Content-Type': 'text/html',
-      'X-Powered-By': 'SsrCore'
-    }
+      "Content-Type": "text/html",
+    },
   });
 }
 ```
-
-Ensure your build process outputs this entry point such that SsrCore can load it (typically `dist/server/entry-server.js` or similar, depending on your configuration).

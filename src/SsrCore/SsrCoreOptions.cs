@@ -34,4 +34,11 @@ public class SsrCoreOptions
     /// Defaults to "default". Supports dot-notation for nested functions (e.g., "entry.module.default").
     /// </summary>
     public string EntryFunction { get; set; } = "default";
+
+    /// <summary>
+    /// Gets or sets the path to the frontend directory (containing vite.config.js).
+    /// Defaults to "Frontend".
+    /// </summary>
+    public string FrontendPath { get; set; } = "Frontend";
+
 }

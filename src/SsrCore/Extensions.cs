@@ -3,7 +3,9 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
+using Microsoft.Extensions.Hosting;
 using SsrCore.Services;
+
 
 namespace SsrCore;
 
@@ -21,7 +23,16 @@ public static class Extensions
     {
         builder.Services.Configure(configureOptions);
         builder.Services.AddSingleton<NodeService>();
+        builder.Services.AddSingleton<SsrContextService>();
+        builder.Services.AddHostedService(sp => sp.GetRequiredService<SsrContextService>());
+
+        if (builder.Environment.IsDevelopment())
+        {
+            builder.Services.AddHttpForwarder();
+            builder.Services.AddSingleton<ViteProxyService>();
+        }
         builder.Services.AddScoped<RenderService>();
+
     }
 
 
@@ -32,19 +43,38 @@ public static class Extensions
     /// <param name="app">The WebApplication.</param>
     public static void UseSsrCore(this WebApplication app)
     {
-        app.UseStaticFiles(new StaticFileOptions
+        if (app.Environment.IsProduction())
         {
-            FileProvider = new PhysicalFileProvider(
-                Path.Combine(app.Environment.WebRootPath, "client")),
+            app.UseStaticFiles(new StaticFileOptions
+            {
+                FileProvider = new PhysicalFileProvider(
+                    Path.Combine(app.Environment.WebRootPath, "client")),
+            });
+        }
+
+        if (app.Environment.IsDevelopment())
+        {
+            app.Use(async (context, next) =>
+            {
+                var viteService = context.RequestServices.GetRequiredService<ViteProxyService>();
+                var handled = await viteService.ForwardRequest(context);
+
+                // If the response has not been handled, continue to the next middleware
+                if (!handled && !context.Response.HasStarted)
+                {
+                    await next();
+                }
+            });
+        }
+
+        app.Use(async (HttpContext context, RequestDelegate next) =>
+        {
+            var renderService = context.RequestServices.GetRequiredService<RenderService>();
+            await renderService.Render(context);
         });
 
-        app.MapFallback(
-            async ([FromServices] RenderService renderService, HttpContext context) =>
-            {
-                context.Response.StatusCode = 200;
-                context.Response.ContentType = "text/html";
-                
-                await renderService.Render(context);
-            });
+
+
+
     }
 }

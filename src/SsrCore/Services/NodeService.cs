@@ -10,14 +10,11 @@ namespace SsrCore.Services;
 public class NodeService
 {
     private readonly SsrCoreOptions _options;
-    private readonly NodeEmbeddingPlatform _platform;
-    internal readonly NodeEmbeddingThreadRuntime Runtime;
+    internal readonly NodeEmbeddingPlatform Platform;
     internal readonly JSMarshaller Marshaller = new JSMarshaller()
     {
         AutoCamelCase = true,
     };
-    internal JSReference EntryServer;
-    internal INodeReadable NodeReadable;
 
     public NodeService(IOptions<SsrCoreOptions> options)
     {
@@ -43,25 +40,6 @@ public class NodeService
             LibNodePath = libnodePath
         };
 
-        _platform = new NodeEmbeddingPlatform(settings);
-
-        Runtime = _platform.CreateThreadRuntime(baseDir, new NodeEmbeddingRuntimeSettings
-        {
-            // Initialize the require function so we can load modules
-            MainScript = "globalThis.require = require('module').createRequire(process.execPath);\n"
-        });
-
-        string bundlePath = Path.Combine(baseDir, "wwwroot", "server", "entry-server.mjs");
-        
-        Task.Run(() =>
-            Runtime.RunAsync(async () =>
-            {
-                var mod = await Runtime.ImportAsync(bundlePath, null, true);
-                EntryServer = new JSReference(mod);
-
-                // Cache the Readable class for later use
-                var radableModule = await Runtime.ImportAsync("stream", "Readable");
-                NodeReadable = Marshaller.FromJS<INodeReadable>(radableModule);
-            })).Wait();
+        Platform = new NodeEmbeddingPlatform(settings);
     }
 }
