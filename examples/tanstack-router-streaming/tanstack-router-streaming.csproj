@@ -17,8 +17,8 @@
     </ItemGroup>
 
     <!-- TEMP: Only for local debugging of build logic -->
-    <Import Project="..\..\src\SsrCore\build\SsrCore.targets" />
     <Import Project="..\..\src\SsrCore\build\SsrCore.props" />
+    <Import Project="..\..\src\SsrCore\build\SsrCore.targets" />
 
     <ItemGroup>
         <Content Update="wwwroot/**/*">
