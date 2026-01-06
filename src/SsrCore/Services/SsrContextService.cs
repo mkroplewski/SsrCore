@@ -86,7 +86,6 @@ public class SsrContextService : IHostedService
         catch (Exception ex)
         {
             _initializedTcs.TrySetException(ex);
-            throw;
         }
     }
 
