@@ -53,8 +53,18 @@ public class SsrContextService : IHostedService
         await Task.CompletedTask;
     }
 
-    public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+    /// <summary>
+/// Stops the hosted service; this implementation performs no action and completes immediately.
+/// </summary>
+/// <returns>A task that has already completed.</returns>
+public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 
+    /// <summary>
+    /// Initialize the Node.js runtime environment for server-side rendering: load the production bundle or start the Vite dev server, register any generated JS-exported types when service injects are configured, and prepare a cached Node Readable wrapper for later use.
+    /// </summary>
+    /// <remarks>
+    /// On success this method completes the service initialization task; on failure it completes the initialization task with the thrown exception.
+    /// </remarks>
     private async Task InitializeAsync()
     {
         try

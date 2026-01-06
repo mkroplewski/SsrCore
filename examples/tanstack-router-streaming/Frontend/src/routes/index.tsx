@@ -13,6 +13,13 @@ export const Route = createFileRoute("/")({
   component: IndexComponent,
 });
 
+/**
+ * Renders the home page using loader data from the route.
+ *
+ * Displays the loader's immediate `date`, the `date` resolved from the deferred payload, and the resolved `greeting`.
+ *
+ * @returns The JSX element for the home page containing the loaded date, deferred date, and greeting.
+ */
 function IndexComponent() {
   const data = Route.useLoaderData();
 

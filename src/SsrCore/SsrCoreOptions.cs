@@ -62,7 +62,11 @@ public class SsrCoreServices
     /// The injected service will be exposed in 'globalThis' object during SSR.
     /// </summary>
     /// <typeparam name="TInterface">The service interface type.</typeparam>
-    /// <param name="jsName">Optional JavaScript name for the service. If null, the .NET type name is used.</param>
+    /// <summary>
+    /// Registers a .NET service interface to be injected into the Node.js runtime for SSR.
+    /// </summary>
+    /// <typeparam name="TInterface">The .NET interface type to register for injection.</typeparam>
+    /// <param name="jsName">Optional JavaScript name to expose the service as; if null, the .NET interface type's name is used.</param>
     public void Inject<TInterface>(string? jsName = null) where TInterface : class
     {
         Injects.Add(new NodeServiceRegistration(

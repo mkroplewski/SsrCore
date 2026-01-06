@@ -24,6 +24,12 @@ public class RenderService
     // Cache constructed generic methods to ensure zero-allocation lookups
     private static readonly ConcurrentDictionary<Type, MethodInfo> _wrapMethodCache = new();
 
+    /// <summary>
+    /// Initializes a new instance of <see cref="RenderService"/> with the provided SSR configuration and required services.
+    /// </summary>
+    /// <param name="options">Application configuration for server-side rendering.</param>
+    /// <param name="nodeService">Service used for JavaScript/Node interop and marshalling.</param>
+    /// <param name="ssrContextService">Service that provides the SSR runtime context and entry-function resolution.</param>
     public RenderService(IOptions<SsrCoreOptions> options, NodeService nodeService, SsrContextService ssrContextService)
     {
         _nodeService = nodeService;
@@ -31,6 +37,11 @@ public class RenderService
         _options = options.Value;
     }
 
+    /// <summary>
+    /// Orchestrates server-side rendering for an HTTP request by invoking the configured JS entry, setting status and headers, and writing the rendered output to the response (either as an atomic HTML string or a streamed body).
+    /// </summary>
+    /// <param name="context">The HTTP context for the incoming request and response.</param>
+    /// <returns>A task that completes when rendering and response streaming have finished; faults if rendering fails.</returns>
     public async Task Render(HttpContext context)
     {
         // 1. Convert Request
