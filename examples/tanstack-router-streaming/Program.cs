@@ -1,4 +1,5 @@
 using SsrCore;
+using tanstack_router_streaming;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -7,9 +8,12 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+builder.Services.AddScoped<IGreeterService, GreeterService>();
+
 builder.AddSsrCore(options =>
 {
     options.RenderMode = RenderMode.WebReadableStream;
+    options.Services.Inject<IGreeterService>("greeterService");
 });
 
 var app = builder.Build();

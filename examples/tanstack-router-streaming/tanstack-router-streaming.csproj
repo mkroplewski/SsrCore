@@ -16,6 +16,10 @@
       <ProjectReference Include="..\..\src\SsrCore\SsrCore.csproj" />
     </ItemGroup>
 
+    <!-- TEMP: Only for local debugging of build logic -->
+    <Import Project="..\..\src\SsrCore\build\SsrCore.targets" />
+    <Import Project="..\..\src\SsrCore\build\SsrCore.props" />
+
     <ItemGroup>
         <Content Update="wwwroot/**/*">
             <CopyToOutputDirectory>Always</CopyToOutputDirectory>

@@ -8,6 +8,7 @@ SsrCore bridges the gap between ASP.NET Core and Node.js, allowing you to run yo
 
 - **Streaming First**: Built from the ground up for streaming. Supports standard Web API `ReadableStream` piping directly to the ASP.NET Core `Response.Body`.
 - **Web Standards**: Native support for standard `Request` and `Response` objects, making it compatible with modern frameworks and edge-ready logic.
+- **Service Injection**: Expose .NET services directly to your JavaScript SSR environment. Call backend services during rendering without HTTP overhead, with full type safety.
 - **Vite Compatible**: Designed to work seamlessly with any [Vite](https://vitejs.dev/) SSR bundle. Simply point SsrCore to your server entry point.
 - **HMR Support**: During development SsrCore integrates with vite dev server, enabling features like Hot Module Replacement (HMR) and on-demand compilation of server-side code.
 - **High Performance**: Optimized interop using shared memory and pinned buffers to minimize overhead between .NET and Node.js.
@@ -49,6 +50,7 @@ app.Run();
 
 - [Getting Started](./docs/getting-started.md)
 - [API Reference](./docs/api-reference.md)
+- [Service Injection](./docs/service-injection.md)
 - [Vite Integration & HMR](./docs/vite-integration.md)
 
 For detailed instructions and API reference, please visit the [Documentation](./docs).

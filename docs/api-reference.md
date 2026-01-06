@@ -28,6 +28,41 @@ Configuration options for SsrCore.
 
 - **`FrontendPath`** The path to your frontend directory (containing vite.config.ts), relative from the project root, required for [Vite integration](./vite-integration.md). Defaults to `Frontend`.
 
+- **`Services`**: Configuration for service injection. See [Service Injection](./service-injection.md) for detailed documentation.
+
+### `SsrCoreServices`
+
+Configuration for injecting .NET services into the Node.js SSR environment.
+
+#### Methods
+
+- **`Inject<TInterface>(string? jsName = null)`**: Registers a service interface to be injected into the Node.js environment during SSR.
+
+  **Type Parameters:**
+
+  - `TInterface`: The service interface type. Must be a class type.
+
+  **Parameters:**
+
+  - `jsName`: Optional JavaScript name for the service. If `null`, the .NET type name is used. This name will be used to access the service in JavaScript via `globalThis[jsName]`.
+
+  **Example:**
+
+  ```csharp
+  builder.AddSsrCore(options =>
+  {
+      options.Services.Inject<IProductService>("productService");
+      options.Services.Inject<IUserService>("userService");
+  });
+  ```
+
+  **Requirements:**
+
+  - The interface must be decorated with `[JSExport]` attribute for TypeScript type generation
+  - The service must be registered in the DI container
+
+  For complete documentation, see [Service Injection](./service-injection.md).
+
 ## Node.js Interop Interface
 
 ### JavaScript Signature

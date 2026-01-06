@@ -1,11 +1,12 @@
-using System.Buffers;
+using System.Collections.Concurrent;
 using System.IO.Pipelines;
-using Microsoft.AspNetCore.Hosting;
+using System.Reflection;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
 using Microsoft.JavaScript.NodeApi;
+using Microsoft.JavaScript.NodeApi.Interop;
 using SsrCore.Interfaces;
 
 namespace SsrCore.Services;
@@ -15,6 +16,13 @@ public class RenderService
     private readonly SsrCoreOptions _options;
     private readonly NodeService _nodeService;
     private readonly SsrContextService _ssrContextService;
+    
+    // Cache generic method info globally
+    private static readonly MethodInfo _wrapMethod = typeof(JSRuntimeContext)
+        .GetMethod(nameof(JSRuntimeContext.GetOrCreateObjectWrapper))!;
+
+    // Cache constructed generic methods to ensure zero-allocation lookups
+    private static readonly ConcurrentDictionary<Type, MethodInfo> _wrapMethodCache = new();
 
     public RenderService(IOptions<SsrCoreOptions> options, NodeService nodeService, SsrContextService ssrContextService)
     {
@@ -35,7 +43,7 @@ public class RenderService
         // 3. Start the Consumer Task (NET ThreadPool)
         // This reads from the pipe and writes to the HTTP Response.
         // We start this immediately so it's ready when data arrives.
-        var writingTask = CopyPipeToResponseAsync(pipe.Reader, context.Response.Body);
+        var writingTask = pipe.Reader.CopyToAsync(context.Response.Body, context.RequestAborted);
 
         // 4. Run the Producer (JS Thread)
         // We await this to ensure the JS generation completes or errors out.
@@ -43,6 +51,19 @@ public class RenderService
         {
             try
             {
+                //Service Injection
+                foreach (var inject in _options.Services.Injects)
+                {
+                    var service = context.RequestServices.GetRequiredService(inject.InterfaceType);
+                    // Wrap Dynamically
+                    var method = _wrapMethodCache.GetOrAdd(inject.InterfaceType, t => _wrapMethod.MakeGenericMethod(t));
+
+                    var proxy = (JSValue)method.Invoke(JSRuntimeContext.Current, [service])!;
+
+                    JSValue.Global.SetProperty(inject.JsName ?? inject.InterfaceType.Name, proxy);
+                }
+                
+                
                 var entry = await _ssrContextService.GetEntryFunctionAsync();
                 var jsRequestValue = jsRequest.ToJSValue();
                 var jsResponseValue = entry.Call(JSValue.Undefined, jsRequestValue);
@@ -77,7 +98,7 @@ public class RenderService
                 if (body == null) throw new InvalidOperationException("Response body is null");
 
                 // Get the stream wrapper based on mode
-                Stream stream = _options.RenderMode == RenderMode.WebReadableStream
+                Stream nodeStream = _options.RenderMode == RenderMode.WebReadableStream
                     ? _ssrContextService.NodeReadable.FromWeb(body.Value)
                     : _nodeService.Marshaller.FromJS<Stream>(body.Value);
 
@@ -85,33 +106,19 @@ public class RenderService
                 var writer = pipe.Writer;
                 while (true)
                 {
-                    // Get memory directly from the Pipe. No 'new byte[]' allocations.
-                    // We ask for at least 4KB, but the Pipe might give us more.
-                    Memory<byte> memory = writer.GetMemory(4096);
+                    // Ask Pipe for a chunk of memory
+                    Memory<byte> memory = writer.GetMemory(8192); // 8KB chunks
 
-                    // Pass the Pipe's memory directly to the NodeStream.
-                    // NodeStream marshals this as a TypedArray. If supported by the interop, 
-                    // V8 writes directly into this pinned .NET memory.
-                    int bytesRead = await stream.ReadAsync(memory).ConfigureAwait(true);
+                    // JS writes directly into that memory
+                    int bytesRead = await nodeStream.ReadAsync(memory);
+                    if (bytesRead == 0) break;
 
-                    if (bytesRead == 0)
-                    {
-                        break; // End of stream
-                    }
-
-                    // Tell the pipe how much we actually wrote
                     writer.Advance(bytesRead);
 
-                    // Flush makes the data available to the writingTask.
-                    // FlushAsync returns a FlushResult. If IsCompleted/IsCanceled, client disconnected.
-                    // This handles BACKPRESSURE. If the client is slow, FlushAsync pauses here,
-                    // stopping the JS loop from generating more data until space clears.
-                    var result = await writer.FlushAsync().ConfigureAwait(true);
-
-                    if (result.IsCompleted || result.IsCanceled)
-                    {
-                        break;
-                    }
+                    // FlushResult tells us if the Consumer is keeping up.
+                    // If result.IsCompleted, the browser disconnected.
+                    var result = await writer.FlushAsync();
+                    if (result.IsCompleted || result.IsCanceled) break;
                 }
             }
             catch (Exception ex)
@@ -122,6 +129,11 @@ public class RenderService
             }
             finally
             {
+                // Clean up injected services
+                foreach (var inject in _options.Services.Injects)
+                {
+                    JSValue.Global.DeleteProperty(inject.JsName ?? inject.InterfaceType.Name);
+                }
                 // Signal we are done producing
                 await pipe.Writer.CompleteAsync();
             }
@@ -129,41 +141,6 @@ public class RenderService
 
         // 8. Ensure Consumer finishes
         await writingTask;
-    }
-
-    // Separate helper method to keep the main logic clean.
-    // This runs on the ThreadPool, freeing up the JS Thread.
-    private static async Task CopyPipeToResponseAsync(PipeReader reader, Stream responseBody)
-    {
-        while (true)
-        {
-            ReadResult result = await reader.ReadAsync();
-            ReadOnlySequence<byte> buffer = result.Buffer;
-
-            if (buffer.IsEmpty && result.IsCompleted)
-            {
-                break;
-            }
-
-            // Efficiently write the sequence to the response stream
-            foreach (var segment in buffer)
-            {
-                await responseBody.WriteAsync(segment);
-            }
-
-            // Tell the pipe we processed everything
-            reader.AdvanceTo(buffer.End);
-
-            // Explicit flush to ensure chunks get sent to client immediately (Streaming UI)
-            await responseBody.FlushAsync();
-
-            if (result.IsCompleted)
-            {
-                break;
-            }
-        }
-
-        await reader.CompleteAsync();
     }
 
 }

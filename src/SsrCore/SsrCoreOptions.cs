@@ -1,23 +1,4 @@
-/// <summary>
-/// Specifies the rendering mode for the Node.js SSR process.
-/// </summary>
-public enum RenderMode
-{
-    /// <summary>
-    /// Renders to a simple string.
-    /// </summary>
-    String,
-
-    /// <summary>
-    /// Renders using a standard Web API ReadableStream.
-    /// </summary>
-    WebReadableStream,
-
-    /// <summary>
-    /// Renders using a Node.js Readable stream.
-    /// </summary>
-    NodeReadableStream
-}
+namespace SsrCore;
 
 /// <summary>
 /// Options for configuring SsrCore.
@@ -40,5 +21,58 @@ public class SsrCoreOptions
     /// Defaults to "Frontend".
     /// </summary>
     public string FrontendPath { get; set; } = "Frontend";
+    
+    /// <summary>
+    /// Gets the service injection configuration.
+    /// </summary>
+    public SsrCoreServices Services { get; } = new();
 
 }
+
+/// <summary>
+/// Specifies the rendering mode for the Node.js SSR process.
+/// </summary>
+public enum RenderMode
+{
+    /// <summary>
+    /// Renders to a simple string.
+    /// </summary>
+    String,
+
+    /// <summary>
+    /// Renders using a standard Web API ReadableStream.
+    /// </summary>
+    WebReadableStream,
+
+    /// <summary>
+    /// Renders using a Node.js Readable stream.
+    /// </summary>
+    NodeReadableStream
+}
+
+/// <summary>
+/// Configuration for services to be injected into the Node.js environment.
+/// </summary>
+public class SsrCoreServices
+{
+    internal List<NodeServiceRegistration> Injects { get; } = new();
+    
+    /// <summary>
+    /// Registers a service interface to be injected into the Node.js environment.
+    /// The injected service will be exposed in 'globalThis' object during SSR.
+    /// </summary>
+    /// <typeparam name="TInterface">The service interface type.</typeparam>
+    /// <param name="jsName">Optional JavaScript name for the service. If null, the .NET type name is used.</param>
+    public void Inject<TInterface>(string? jsName = null) where TInterface : class
+    {
+        Injects.Add(new NodeServiceRegistration(
+            jsName,
+            typeof(TInterface)
+        ));
+    }
+}
+
+internal record NodeServiceRegistration(
+    string? JsName,
+    Type InterfaceType
+);

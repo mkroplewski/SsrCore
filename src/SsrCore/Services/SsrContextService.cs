@@ -1,3 +1,4 @@
+using System.Reflection;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
@@ -19,7 +20,7 @@ public class SsrContextService : IHostedService
     private JSReference? _ssrLoadModule;
     private JSReference? EntryServer;
 
-    internal INodeReadable? NodeReadable;
+    internal INodeReadable NodeReadable;
     internal NodeEmbeddingThreadRuntime Runtime;
     internal string? InternalViteUrl;
 
@@ -54,7 +55,7 @@ public class SsrContextService : IHostedService
 
     public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 
-    public async Task InitializeAsync()
+    private async Task InitializeAsync()
     {
         try
         {
@@ -75,6 +76,31 @@ public class SsrContextService : IHostedService
                     // var viteReturn = task.GetAwaiter().GetResult();
                     InternalViteUrl = (string)viteReturn.GetProperty("url");
                     _ssrLoadModule = new JSReference(viteReturn.GetProperty("ssrLoadModule"));
+                }
+
+                if (_options.Value.Services.Injects.Count != 0)
+                {
+                    var projectAssembly = Assembly.GetEntryAssembly();
+
+                    // 1. Find the Generated Module class
+                    var moduleType = projectAssembly?.GetType("Microsoft.JavaScript.NodeApi.Generated.Module");
+
+                    if (moduleType != null)
+                    {
+                        // 2. Find the Initialize method
+                        var initMethod = moduleType.GetMethod("Initialize", BindingFlags.Public | BindingFlags.Static);
+
+                        if (initMethod != null)
+                        {
+                            // 3. Invoke it
+                            // This performs the registration of all the [JSExport] types automatically
+                            var env = (JSRuntime.napi_env)JSValueScope.Current;
+                            var exports = new JSObject();
+
+                            // Invoke static method: Module.Initialize(env, exports)
+                            initMethod.Invoke(null, [env, (JSRuntime.napi_value)(JSValue)exports]);
+                        }
+                    }
                 }
 
                 // Cache the Readable class for later use
