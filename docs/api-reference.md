@@ -40,7 +40,7 @@ Configuration for injecting .NET services into the Node.js SSR environment.
 
   **Type Parameters:**
 
-  - `TInterface`: The service interface type. Must be a class type.
+  - `TInterface`: The service interface type.
 
   **Parameters:**
 

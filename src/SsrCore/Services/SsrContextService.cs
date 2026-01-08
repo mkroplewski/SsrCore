@@ -23,7 +23,7 @@ public class SsrContextService : IHostedService
     private JSReference? _ssrLoadModule;
     private JSReference? EntryServer;
 
-    internal INodeReadable NodeReadable;
+    internal INodeReadable NodeReadable = null!; // Initialized in InitializeAsync
     internal NodeEmbeddingThreadRuntime Runtime;
     internal string? InternalViteUrl;
 
