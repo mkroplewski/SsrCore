@@ -43,7 +43,8 @@ public static class Extensions
     /// <param name="app">The WebApplication.</param>
     public static void UseSsrCore(this WebApplication app)
     {
-        if (app.Environment.IsProduction())
+        var isDevelopment = app.Environment.IsDevelopment();
+        if (!isDevelopment)
         {
             app.UseStaticFiles(new StaticFileOptions
             {
@@ -52,7 +53,7 @@ public static class Extensions
             });
         }
 
-        if (app.Environment.IsDevelopment())
+        if (isDevelopment)
         {
             app.Use(async (context, next) =>
             {

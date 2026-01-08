@@ -1,6 +1,7 @@
 import { createRequestHandler, defaultStreamHandler } from "@tanstack/react-router/ssr/server";
 import { createRouter } from "./router";
-export default async function render(request: Request) {
-  const handler = createRequestHandler({ request, createRouter });
+import { Services } from "./services";
+export default async function render(request: Request, services: Services) {
+  const handler = createRequestHandler({ request, createRouter: () => createRouter(services) });
   return await handler(defaultStreamHandler);
 }

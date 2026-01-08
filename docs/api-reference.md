@@ -24,7 +24,7 @@ Configuration options for SsrCore.
   - `RenderMode.WebReadableStream`: Treats the response body as a standard Web API `ReadableStream`. (Recommended for streaming)
   - `RenderMode.NodeReadableStream`: Treats the response body as a Node.js `stream.Readable`.
 
-- **`EntryFunction`**: The name of the function in your server entry file. Defaults to `default`.
+- **`EntryFunction`**: The name of the function in your server entry file. Defaults to `default`. Supports dot-notation for nested functions (e.g., "entry.module.default").
 
 - **`FrontendPath`** The path to your frontend directory (containing vite.config.ts), relative from the project root, required for [Vite integration](./vite-integration.md). Defaults to `Frontend`.
 

@@ -16,7 +16,7 @@ public class RenderService
     private readonly SsrCoreOptions _options;
     private readonly NodeService _nodeService;
     private readonly SsrContextService _ssrContextService;
-    
+
     // Cache generic method info globally
     private static readonly MethodInfo _wrapMethod = typeof(JSRuntimeContext)
         .GetMethod(nameof(JSRuntimeContext.GetOrCreateObjectWrapper))!;
@@ -51,6 +51,12 @@ public class RenderService
         {
             try
             {
+
+
+
+                var entry = await _ssrContextService.GetEntryFunctionAsync();
+                var jsRequestValue = jsRequest.ToJSValue();
+                var services = new JSObject();
                 //Service Injection
                 foreach (var inject in _options.Services.Injects)
                 {
@@ -60,13 +66,10 @@ public class RenderService
 
                     var proxy = (JSValue)method.Invoke(JSRuntimeContext.Current, [service])!;
 
-                    JSValue.Global.SetProperty(inject.JsName ?? inject.InterfaceType.Name, proxy);
+                    services.Add(inject.JsName ?? inject.InterfaceType.Name, proxy);
                 }
-                
-                
-                var entry = await _ssrContextService.GetEntryFunctionAsync();
-                var jsRequestValue = jsRequest.ToJSValue();
-                var jsResponseValue = entry.Call(JSValue.Undefined, jsRequestValue);
+
+                var jsResponseValue = entry.Call(JSValue.Undefined, jsRequestValue, services);
                 if (jsResponseValue.IsPromise())
                 {
                     jsResponseValue = await ((JSPromise)jsResponseValue).AsTask();
@@ -129,11 +132,6 @@ public class RenderService
             }
             finally
             {
-                // Clean up injected services
-                foreach (var inject in _options.Services.Injects)
-                {
-                    JSValue.Global.DeleteProperty(inject.JsName ?? inject.InterfaceType.Name);
-                }
                 // Signal we are done producing
                 await pipe.Writer.CompleteAsync();
             }
