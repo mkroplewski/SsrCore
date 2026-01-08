@@ -50,9 +50,9 @@ Service Injection solves a common challenge in SSR applications: how to access b
         ┌────────────────────────┼────────────────────────┐
         │                        │                        │
 ┌───────▼────────┐    ┌──────────▼──────────┐   ┌────────▼────────┐
-│ Inject Service │───▶│ Node.js SSR Runtime │◀──│ Your React/Vue  │
-│ Proxies to     │    │  (globalThis scope)  │   │ Components Call │
-│ globalThis     │    └─────────────────────┘   │ globalThis.xyz  │
+│ Pass Services  │───▶│ Node.js SSR Runtime │◀──│ Your React/Vue  │
+│ as Parameter   │    │  (render function)   │   │ Components Use  │
+│ to Render Fn   │    └─────────────────────┘   │ Services Param  │
 └────────────────┘                               └─────────────────┘
         │
         │  Service calls are marshalled via node-api-dotnet
@@ -67,10 +67,10 @@ During each request:
 
 1. SsrCore middleware resolves your registered services from the current request's DI scope
 2. Services are wrapped as JavaScript proxies
-3. These proxies are injected into `globalThis` in the Node.js SSR environment
-4. Your JS code calls these services as if they were native JavaScript
+3. These proxies are passed as the second parameter to your render function
+4. Your JS code receives the services object and can call methods on it
 5. Calls are marshalled back to .NET, executed, and results returned
-6. After rendering completes, services are cleaned up from `globalThis`
+6. After rendering completes, services are automatically cleaned up
 
 ## Quick Start
 
@@ -114,28 +114,148 @@ builder.AddSsrCore(options =>
 });
 ```
 
-**Step 4:** Create global type declarations in `src/global.d.ts`:
+**Step 4:** Use in your SSR code - services are passed as the second parameter to your render function:
 
-```typescript
-import generated from "./_generated/api";
+```tsx
+// server/render.tsx (or equivalent SSR entry point)
+import type generated from "./_generated/api";
 
-declare global {
-  var greeterService: generated.greeterService;
+export async function render(
+  request: Request,
+  services: {
+    greeterService: generated.greeterService;
+  }
+) {
+  // Your rendering logic here - services available via the parameter
+  const greeting = await services.greeterService.greetAsync("World");
+  // ...
 }
 ```
 
-**Step 5:** Use in your SSR code (Tanstack Router example):
+## Passing Services to Your Components
+
+How you pass services from the render function to your components is **up to you**. You can use built-in framework options or create your own context pattern.
+
+### React Router AppLoadContext
+
+React Router has built-in support for `AppLoadContext`, which works perfectly with SsrCore services. The default `createRequestHandler` accepts services as the second parameter:
+
+**Type declarations** (`app/global.d.ts`):
+
+```typescript
+import "react-router";
+import { greeterService } from "./_generated/api";
+
+declare module "react-router" {
+  interface AppLoadContext {
+    greeterService: greeterService;
+  }
+}
+```
+
+**That's it!** SsrCore automatically calls `createRequestHandler` with your services as the second parameter (AppLoadContext). You don't need to write a custom render function.
+
+**Use in route loaders**:
 
 ```tsx
-// src/routes/index.tsx
 export const Route = createFileRoute("/")({
-  loader: () => {
+  loader: ({ context }) => {
     return {
-      greeting: typeof window === "undefined" ? globalThis.greeterService.greetAsync("World") : Promise.resolve("Client-side"),
+      greeting: context.greeterService.greetAsync("World"),
     };
   },
   component: IndexComponent,
 });
+```
+
+### TanStack Router Context
+
+For TanStack Router, use the router context pattern with module augmentation:
+
+**Services type** (`src/services.ts`):
+
+```tsx
+import services from "./_generated/api";
+
+export type Services = {
+  greeterService?: services.greeterService;
+};
+```
+
+**Router context type** (`src/routerContext.tsx`):
+
+```tsx
+import { Services } from "./services";
+
+export type RouterContext = {
+  services: Services;
+};
+```
+
+**Router setup** (`src/router.tsx`):
+
+```tsx
+import { createRouter as createReactRouter } from "@tanstack/react-router";
+import { routeTree } from "./routeTree.gen";
+import { Services } from "./services";
+
+export function createRouter(services: Services) {
+  return createReactRouter({
+    routeTree,
+    context: {
+      head: "",
+      services: services,
+    },
+    defaultPreload: "intent",
+    scrollRestoration: true,
+  });
+}
+
+declare module "@tanstack/react-router" {
+  interface Register {
+    router: ReturnType<typeof createRouter>;
+  }
+}
+```
+
+**Use in loaders**:
+
+```tsx
+export const Route = createFileRoute("/")({
+  loader: ({ context }) => {
+    if (context.services.greeterService) {
+      return { greeting: context.services.greeterService.greetAsync("World") };
+    }
+    return { greeting: "Client" };
+  },
+});
+```
+
+### Option 3: Custom React Context
+
+For maximum control or other frameworks, create your own context:
+
+```tsx
+import { createContext, useContext } from "react";
+import type generated from "./_generated/api";
+
+const ServicesContext = createContext<{
+  greeterService?: generated.greeterService;
+}>({});
+
+export function ServicesProvider({ services, children }) {
+  return <ServicesContext.Provider value={services}>{children}</ServicesContext.Provider>;
+}
+
+export function useServices() {
+  return useContext(ServicesContext);
+}
+
+// In your component:
+function MyComponent() {
+  const { greeterService } = useServices();
+  // use greeterService...
+}
 ```
 
 ## Type Safety
@@ -204,16 +324,16 @@ In the example above, all data models are defined as interfaces rather than clas
 
 ### 1. **Server-Side Only**
 
-Services are **only available during SSR**, not on the client. After hydration, `globalThis.myService` will be `undefined`.
+Services are **only available during SSR** (passed as parameter to render function), not on the client.
 
 **Solution:** Implement separate client-side data fetching:
 
 ```typescript
 export const Route = createFileRoute("/data")({
-  loader: async () => {
-    if (typeof window === "undefined") {
-      // SSR: use injected service
-      return await globalThis.myService.getData();
+  loader: async ({ context }) => {
+    if (context.services) {
+      // SSR: use service from context
+      return await context.services.myService.getData();
     } else {
       // Client: use fetch API
       const response = await fetch("/api/data");

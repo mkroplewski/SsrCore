@@ -5,6 +5,7 @@
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
         <RootNamespace>react_router_streaming</RootNamespace>
+        <SsrTypesDestination>./Frontend/app/_generated/api.d.ts</SsrTypesDestination>
     </PropertyGroup>
 
     <ItemGroup>
@@ -15,6 +16,10 @@
     <ItemGroup>
       <ProjectReference Include="..\..\src\SsrCore\SsrCore.csproj" />
     </ItemGroup>
+
+    <!-- TEMP: Only for local debugging of build logic -->
+    <Import Project="..\..\src\SsrCore\build\SsrCore.targets" />
+    <Import Project="..\..\src\SsrCore\build\SsrCore.props" />
 
     <ItemGroup>
         <Content Update="wwwroot/**/*">

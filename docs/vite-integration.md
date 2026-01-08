@@ -43,3 +43,37 @@ When running the Vite dev server within a .NET host process, due to Rollup's nat
   }
 }
 ```
+
+### Vite Server Script Required
+
+Currently, you need to provide a `vite-server.js` script in your Frontend directory to start the Vite dev server and expose the `ssrLoadModule` function. Create this file:
+
+```javascript
+// Frontend/vite-server.js
+import { createServer } from "vite";
+import { fileURLToPath } from "url";
+
+const __dirname = fileURLToPath(new URL(".", import.meta.url));
+
+// This will serve the client code for .NET to proxy to, and provide ssrLoadModule for resolving the SSR entry point
+export default async function startVite() {
+  const vite = await createServer({
+    root: __dirname,
+    server: {
+      middlewareMode: false,
+    },
+    appType: "custom",
+  });
+
+  const server = await vite.listen(0);
+  const address = server.httpServer?.address();
+
+  if (address === null || typeof address === "string" || address === undefined) {
+    throw new Error("Failed to start Vite server");
+  }
+  console.log(`Vite running in-process on ${address.port}`);
+  return { url: `http://localhost:${address.port}`, ssrLoadModule: vite.ssrLoadModule };
+}
+```
+
+This script creates a Vite server instance and returns both the dev server URL (for proxying client requests) and the `ssrLoadModule` function (for loading SSR modules). The need for this script will likely be removed in a future version of SsrCore.

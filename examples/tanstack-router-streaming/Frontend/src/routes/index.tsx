@@ -2,11 +2,11 @@ import { Await, createFileRoute } from "@tanstack/react-router";
 import * as React from "react";
 
 export const Route = createFileRoute("/")({
-  loader: () => {
+  loader: ({context}) => {
     return {
       date: new Date(),
       deferred: new Promise<{ date: Date }>((r) => setTimeout(() => r({ date: new Date() }), 1000)),
-      greeting: typeof window === "undefined" ? globalThis.greeterService.greetAsync("World") : Promise.resolve(""),
+      greeting: context.services?.greeterService?.greetAsync("World") || Promise.resolve("Client-side"),
     };
   },
   staleTime: Infinity,
