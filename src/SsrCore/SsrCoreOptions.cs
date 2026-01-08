@@ -21,7 +21,7 @@ public class SsrCoreOptions
     /// Defaults to "Frontend".
     /// </summary>
     public string FrontendPath { get; set; } = "Frontend";
-    
+
     /// <summary>
     /// Gets the service injection configuration.
     /// </summary>
@@ -56,10 +56,10 @@ public enum RenderMode
 public class SsrCoreServices
 {
     internal List<NodeServiceRegistration> Injects { get; } = new();
-    
+
     /// <summary>
     /// Registers a service interface to be injected into the Node.js environment.
-    /// The injected service will be exposed in 'globalThis' object during SSR.
+    /// The injected service will be passed as the second argument to the render function during SSR.
     /// </summary>
     /// <typeparam name="TInterface">The service interface type.</typeparam>
     /// <param name="jsName">Optional JavaScript name for the service. If null, the .NET type name is used.</param>

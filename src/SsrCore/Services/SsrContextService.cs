@@ -1,8 +1,10 @@
 using System.Reflection;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.JavaScript.NodeApi;
+using Microsoft.JavaScript.NodeApi.DotNetHost;
 using Microsoft.JavaScript.NodeApi.Runtime;
 using SsrCore.Interfaces;
 
@@ -11,11 +13,12 @@ namespace SsrCore.Services;
 public class SsrContextService : IHostedService
 {
     private readonly IOptions<SsrCoreOptions> _options;
-    private readonly bool _isDevelopment;
     private readonly NodeService _nodeService;
     private readonly IWebHostEnvironment _env;
-    private readonly string _bundlePath;
     private readonly TaskCompletionSource _initializedTcs = new();
+    private readonly ILogger<SsrContextService> _logger;
+    private readonly bool _isDevelopment;
+    private readonly string _bundlePath;
 
     private JSReference? _ssrLoadModule;
     private JSReference? EntryServer;
@@ -26,11 +29,12 @@ public class SsrContextService : IHostedService
 
     public Task InitializationTask => _initializedTcs.Task;
 
-    public SsrContextService(NodeService nodeService, IOptions<SsrCoreOptions> options, IWebHostEnvironment env)
+    public SsrContextService(NodeService nodeService, IOptions<SsrCoreOptions> options, IWebHostEnvironment env, ILogger<SsrContextService> logger)
     {
         _nodeService = nodeService;
         _options = options;
         _env = env;
+        _logger = logger;
         _isDevelopment = env.IsDevelopment();
 
         var frontendDistPath = Path.Combine(AppContext.BaseDirectory, "wwwroot", "server");
@@ -61,7 +65,7 @@ public class SsrContextService : IHostedService
         {
             await Runtime.RunAsync(async () =>
             {
-                if (_env.IsProduction())
+                if (!_isDevelopment)
                 {
                     var mod = await Runtime.ImportAsync(_bundlePath, null, true);
                     EntryServer = new JSReference(mod);
@@ -99,6 +103,32 @@ public class SsrContextService : IHostedService
 
                             // Invoke static method: Module.Initialize(env, exports)
                             initMethod.Invoke(null, [env, (JSRuntime.napi_value)(JSValue)exports]);
+                        }
+                    }
+                    else
+                    {
+                        _logger.LogWarning("Could not find the statically generated module for JS exports. " +
+                                           "Ensure you have [JSExport] attributes in the interfaces registered for SSR injection. " +
+                                           "Proceeding with runtime registration. This will have a performance impact on startup.");
+
+                        var exports = new JSObject();
+                        var typeExporter = new TypeExporter(_nodeService.Marshaller, exports);
+
+                        // Fallback: Try to register interfaces at runtime
+                        foreach (var inject in _options.Value.Services.Injects)
+                        {
+                            var jsRef = typeExporter.ExportType(inject.InterfaceType);
+                            var jsConstructor = jsRef.GetValue();
+
+                            // 2. Patch the prototype to add camelCase aliases
+                            if (jsConstructor.HasProperty("prototype"))
+                            {
+                                var prototype = jsConstructor["prototype"];
+                                CreateCamelCaseAliases(prototype);
+                            }
+
+                            // 3. Patch static members (on the constructor itself)
+                            CreateCamelCaseAliases(jsConstructor);
                         }
                     }
                 }
@@ -158,5 +188,29 @@ public class SsrContextService : IHostedService
         }
 
         return entryFunction;
+    }
+
+    private void CreateCamelCaseAliases(JSValue obj)
+    {
+        // Iterate over all keys (methods/properties)
+        var properties = (JSArray)obj.GetPropertyNames(); // Returns JSArray
+        foreach (JSValue key in properties)
+        {
+            if (!key.IsString()) continue;
+
+            string pascalName = (string)key;
+            if (string.IsNullOrEmpty(pascalName)) continue;
+
+            // Convert to camelCase
+            // (Simple logic: lowercase first char. Matches NodeApi generator logic)
+            string camelName = char.ToLowerInvariant(pascalName[0]) + pascalName.Substring(1);
+
+            // If names differ and the alias doesn't exist yet...
+            if (pascalName != camelName && !obj.HasProperty(camelName))
+            {
+                // Create the alias pointing to the exact same value/function
+                obj.SetProperty(camelName, obj.GetProperty(pascalName));
+            }
+        }
     }
 }

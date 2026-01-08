@@ -1,3 +1,4 @@
+using react_router_streaming;
 using SsrCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -6,11 +7,12 @@ var builder = WebApplication.CreateBuilder(args);
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddScoped<IGreeterService, GreeterService>();
 
 builder.AddSsrCore(options =>
 {
-    options.RenderMode = RenderMode.String;
-    // options.EntryFunction = "entry.module.default";
+    options.RenderMode = RenderMode.WebReadableStream;
+    options.Services.Inject<IGreeterService>("greeterService");
 });
 
 var app = builder.Build();

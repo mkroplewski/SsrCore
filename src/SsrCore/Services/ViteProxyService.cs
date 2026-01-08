@@ -62,14 +62,14 @@ class ViteHttpTransformer : HttpTransformer
 {
     public static readonly ViteHttpTransformer Instance = new();
 
-    public override async ValueTask<bool> TransformResponseAsync(HttpContext context, HttpResponseMessage proxyResponse)
+    public override async ValueTask<bool> TransformResponseAsync(HttpContext context, HttpResponseMessage? proxyResponse, CancellationToken token)
     {
-        if (proxyResponse.StatusCode == HttpStatusCode.NotFound)
+        if (proxyResponse?.StatusCode == HttpStatusCode.NotFound)
         {
             return false;
         }
 
         context.Items["ViteProxyRequestHandled"] = true;
-        return await base.TransformResponseAsync(context, proxyResponse);
+        return await base.TransformResponseAsync(context, proxyResponse, token);
     }
 }
