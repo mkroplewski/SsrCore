@@ -108,7 +108,7 @@ public class SsrContextService : IHostedService
                     else
                     {
                         _logger.LogWarning("Could not find the statically generated module for JS exports. " +
-                                           "Ensure you have [JSExport] attributes in the interfaces registered for SSR injection." +
+                                           "Ensure you have [JSExport] attributes in the interfaces registered for SSR injection. " +
                                            "Proceeding with runtime registration. This will have a performance impact on startup.");
 
                         var exports = new JSObject();
